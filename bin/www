@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+// Zona de importación
+var debug = require('debug')('quiz-2015-MiriadaX');
+var app = require('../app');  //Importamos la app
+
+// Definimos el puerto que está en process.env, si no existe lo cargamos en el puerto 3000
+app.set('port', process.env.PORT || 3000);
+
+// Ejecutamos la app
+var server = app.listen(app.get('port'), function() {
+  debug('Express server listening on port ' + server.address().port);
+});

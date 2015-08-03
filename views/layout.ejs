@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Quiz: El juego de las preguntas</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+    <!--<link rel='stylesheet' href='/stylesheets/style.css' /> -->    
+
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon" />
+  </head>
+  <body>
+    <div class="container">      
+      <header class="row jumbotron">
+        <%if(!session.user){%>
+          <span class="right"><a href="/login">Login</a></span>
+        <%}else{%>
+          <span class="right"> <%=session.user.username%> <a href="/logout">Logout</a></span>
+        <%}%>
+        <h1 class="text-center">Quiz <span class="hidden-xs">: el juego de las preguntas</span></h1>        
+      </header>
+      <div class="row">
+        <nav class="col-xs-10 col-sm-4" role="navigation">
+          <ul class="nav nav-pills">
+            <li class="col-sm-12"><a href="/">Inicio</a></li>
+            <li class="col-sm-12"><a href="/quizes">Preguntas</a></li>
+            <li class="col-sm-12"><a href="/author">Créditos</a></li>
+          </ul>    
+        </nav>
+
+        <section class="col-xs-10 col-sm-8">          
+          <% if (errors.length) { %>
+            <span id='ErrorMsgs'>
+              Corregir errores:<br/>
+              <% for (var i in errors) { %>
+                 <span> <%= errors[i].message %> </span><br/>
+              <% } %>
+            </span>
+          <% } %>
+          <div>
+            <%- body %>
+          </div>
+        </section>        
+      </div>
+
+
+      <footer class="row text-center">
+        <a href="http://es.wikipedia.org/wiki/Quiz">¿Que es un Quiz?</a><br>
+        <a href="https://github.com/ShinFDuran/quiz-2015-MiriadaX">Repositorio GitHub</a>
+      </footer>
+    </div>
+  </body>
+</html>
