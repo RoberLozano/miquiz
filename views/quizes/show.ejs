@@ -1,21 +1,20 @@
-<h2>Quiz: el juego de las preguntas</h2>
 <form method="get" action="/quizes/<%= quiz.id %>/answer">
-	<div class="form-group">
-		<h3>Temática: <%= quiz.tema %></h3>
-		<label for="pregunta">Pregunta: <%= quiz.pregunta %></label>
-		<input type="text" class="form-control" id="pregunta" name="respuesta" placeholder="Responda aquí" />		
-	</div>
-	<button type="submit" class="btn btn-success">Enviar</button>
+	Pregunta: <%= quiz.pregunta %> 
+	<p>
+		<input type="text" name="respuesta" value="Respuesta"/>
+		<input type="submit" value="Enviar">
+	</p>
 </form>
-<p><a href="/quizes/<%= quiz.id %>/comments/new"><button>Nuevo comentario</button></a></p>
+<p><a href="/quizes/<%=quiz.id %>/comments/new"><button>Nuevo comentario</button></a></p>
 
-<p><strong>Comentarios:</strong></p>
-<%for(index in quiz.Comments){%>
+<p><strong>Comentarios: </strong></p>
+<% for (index in quiz.Comments){%>
 	<%if(quiz.Comments[index].publicado || session.user){%>
 		<p>- <%=quiz.Comments[index].texto%>
-			<%if(session.user && !quiz.Comments[index].publicado){%>
-				<a href="/quizes/<%= quiz.id %>/comments/<%=quiz.Comments[index].id%>/publish"><button>Publicar</button></a>
-			<%}%>
+		<%if(session.user && !quiz.Comments[index].publicado){%>
+			<a href="/quizes/<%= quiz.id %>/comments/<%= quiz.Comments[index].id %>/publish">
+			<button>Publicar</button></a>
+		<%}%>
 		</p>
-	<%}%>	
+	<%}%>
 <%}%>

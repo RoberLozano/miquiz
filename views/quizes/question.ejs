@@ -1,8 +1,6 @@
-<h2>Quiz: el juego de las preguntas</h2>
 <form method="get" action="/quizes/answer">
-	<div class="form-group">
-		<label for="pregunta">Pregunta: <%= pregunta %></label>
-		<input type="text" class="form-control" id="pregunta" name="respuesta" placeholder="Responda aquí" />		
-	</div>
-	<button type="submit" class="btn btn-success">Enviar</button>
+	<p> Pregunta: <%= pregunta %> </p>
+	<input type="text" name="respuesta" value="Respuesta aquí"/>
+	<input type="submit" value="Enviar"/>
 </form>
+

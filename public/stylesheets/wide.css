@@ -1,0 +1,32 @@
+body {
+  background: #999;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+#page-wrap:after{content: "Wide Layout";}
+
+nav  {
+	float:left;
+	width:15%;
+	height: 200px;
+	text-align: left;
+}
+
+nav span {
+	margin: 0px 100px 0px 0px;
+}
+
+section {
+	float:right;
+	width:80%;
+	height: 200px;
+}
+
+footer {
+	clear: both;
+	display: block;
+}
+
+a {
+  color: #00B7FF;
+}

@@ -1,4 +1,3 @@
-// **************  Zona de importación de paquetes
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -9,78 +8,92 @@ var partials = require('express-partials');
 var methodOverride = require('method-override');
 var session = require('express-session');
 
-
-// **************  Importamos enrutadores
 var routes = require('./routes/index');
+//No se necesita: var users = require('./routes/users');
 
-
-// **************  Generamos la aplicación
 var app = express();
 
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 
-// **************  Zona de configuraciones de la aplicación
-app.set('views', path.join(__dirname, 'views'));        // Directorio que contiene las vistas
-app.set('view engine', 'ejs');          // Motor de generación de plantillas, ejs en este caso
-app.use(partials());                    // Uso de herencia en las plantillas
-app.use(favicon(__dirname + '/public/images/favicon.ico'));  // Favicon
+app.use(partials());
+// uncomment after placing your favicon in /public
+app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
-app.use(bodyParser.json());             // Esta y la siguiente para boder acceder a los
-app.use(bodyParser.urlencoded());       // parámetros post de req.body
-app.use(methodOverride('_method'));     // Sobreescritura de direcciones
-app.use(cookieParser('Quiz 2015'));     // Generador de cookies
-app.use(session());                     // Gestión de la sesión
-app.use(express.static(path.join(__dirname, 'public')));      // Directorio estático
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded());
+app.use(cookieParser('Quiz 2015'));
+app.use(session());
+app.use(methodOverride('_method'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Helper de la gestión de la sesión
+//No se necesita: app.use('/users', users);
+
+//tiempo de sesion (solución de Juan Ignacio Gil  + Diego E - Ver foro)
 app.use(function(req, res, next) {
-  // guardar path en session.redir para despues de login
-  if (!req.path.match(/\/login|\/logout/)) {
-    req.session.redir = req.path;
-  }
-  
-  res.locals.session = req.session;   // Hacer visible req.session en las vistas
-  next();                             // Dar el control al siguiente middleware
+    if(req.session.user){// si estamos en una sesion
+        if(!req.session.marcatiempo){//primera vez se pone la marca de tiempo
+            req.session.marcatiempo=(new Date()).getTime();
+        }else{
+            if((new Date()).getTime()-req.session.marcatiempo > 60000){//se pasó el tiempo y eliminamos la sesión (2min=120000ms)
+                delete req.session.user;     //eliminamos el usuario
+				req.session.marcatiempo=null;
+				res.redirect('/login');
+            }else{//hay actividad se pone nueva marca de tiempo
+                req.session.marcatiempo=(new Date()).getTime();
+            }
+        }
+    }
+    next();
 });
 
+// Helpers dinámicos:
+app.use(function(req, res, next){
+	// guardar path en session.redir para después de login
+	if (!req.path.match(/\/login|\/logout/)) {
+		req.session.redir = req.path;
+	}
 
-// Middleware de gestión de las rutas que gestionamos en routes/index.js
-// Si no hay una respuesta dentro de routes, pasa al siguiente, que sería generar error
-app.use('/', routes);  
+	// Hacer visible req.session en las vistas
+	res.locals.session = req.session;
+	next();
+});
 
+app.use('/', routes);
 
-// **************  Zona de gestión de errores
-// Si no hay respuesta en las rutas, pasa el control a esta función
-// Generar el error 404 de HTTP
+// catch 404 and forward to error handler
 app.use(function(req, res, next) {
-    var err = new Error('404 - La página web indicada no existe');
+    var err = new Error('Not Found');
     err.status = 404;
     next(err);
 });
 
-// Los siguientes mostrarán el error 404 si existe, sino será error 500
-// Gestión de errores durante el desarrollo.  Muestra el stack de errores
+// error handlers
+
+// development error handler
+// will print stacktrace
 if (app.get('env') === 'development') {
     app.use(function(err, req, res, next) {
-    // Si en la función anterior asignamos a err.status 404 se mantiene, sino se le asigna 500
         res.status(err.status || 500);
         res.render('error', {
             message: err.message,
             error: err,
-            errors: []
+			errors: []
         });
     });
 }
 
-// Gestión de errores de producción.  Indica que hay error sin dar detalles
+// production error handler
+// no stacktraces leaked to user
 app.use(function(err, req, res, next) {
     res.status(err.status || 500);
     res.render('error', {
         message: err.message,
         error: {},
-        errors: []
+		errors: []
     });
 });
 
 
-// **************  Exportamos la app para ser ejecutada en bin/www
 module.exports = app;

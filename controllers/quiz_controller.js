@@ -1,131 +1,172 @@
-// Nota mental: La plantilla 'quizes/question', si en su lugar usamos '/quizes/question'
-// Genera un error.  No hay que confundir las rutas con las plantillas
-
-// Importamos el modelo de datos.  Que a su vez contiene a los demás modelos
 var models = require('../models/models.js');
 
-// Autoload - factoriza el código si la ruta incluye :quizId
-// Asigna al valor req.quiz el objeto quiz para la id correspondiente a quizId
+// Autoload - factoriza el código si ruta incluye :quizId
 exports.load = function(req, res, next, quizId) {
-  models.Quiz.find({
-            where: 
-              {id: Number(quizId)},
-              include: [{model: models.Comment}]
-        }).then(
-    // Quiz es una instancia de la tabla 
-    // Cumple la condición que la id de la fila es igual a quizId
-    // Si no existe esa id en la tabla devuelve un valor vacío (undefined)
-    function(quiz) {
-      if (quiz) {
-        req.quiz = quiz;
-        next();
-      } else {next(new Error('No existe quizId=' + quizId));}
-    }
-  ).catch(function(error){next(error);});
+	models.Quiz.find({
+			where: {id: Number(quizId)},
+			include: [{model: models.Comment}]
+		}).then(
+		function(quiz){
+			if(quiz){
+				req.quiz = quiz;
+				next();
+			} else { next(new Error('No existe quizId=' + quizId));}
+		}
+	).catch(function(error) { next(error);})
 };
 
-// Get /quizes
-// Se le pasa la matriz completa (quizes) que tendrá tantos objetos como filas tenga la tabla
-// Inicialmente hay que comprobar si existe req.query.search
-// Si no existe -> Listado preguntas  -> index habitual
-// Si existe    -> Listado búsqueda   -> index con listado búsqueda
-exports.index = function(req, res){
-  if(!req.query.search){    
-    models.Quiz.findAll().then(function(quizes){
-      res.render('quizes/index', {quizes: quizes, errors: []});
-    }).catch(function(error){next(error);})
-    
-  }else{
-    // Inicialmente cometí el fallo de usar el parámetro search sin añadirle wildcarts
-    var search = '%' + req.query.search + '%';
-
-    // Cambiamos los espacios por la wildcart %
-    search = search.replace(' ', '%');
-
-    // Le pasamos a findAll un objeto con los parámetros de la búsqueda
-    models.Quiz.findAll({where: ["pregunta like ?", search]}).then(function(quizes){
-      res.render('quizes/index', {quizes: quizes, errors: []});
-    }).catch(function(error){next(error);})
-  }
+// GET  /quizes/new
+exports.new = function(req, res){
+	var quiz = models.Quiz.build(  // crea objeto quiz
+		{ tema: "Tema", pregunta: "Pregunta", respuesta: "Respuesta"}
+	);
+	res.render('quizes/new', {quiz: quiz, errors: []});
 };
 
-// GET /quizes/:quizId
-// Muestra una pregunta correspondiente al quizId introducido
+// POST  /quizes/create
+exports.create = function(req, res){
+	var quiz = models.Quiz.build( req.body.quiz);
+
+	quiz.validate()
+	  .then(
+		function(err){
+	  	  if (err){
+			res.render('quizes/new',{quiz: quiz, errors: err.errors});
+		  } else {
+			quiz // guarda en DB los campos pregunta y respuesta de quiz
+			.save({fields: ["tema", "pregunta", "respuesta"]})
+			.then(function(){res.redirect('/quizes')});
+		  } // Redireccion HTTP (URL relativo) lista de preguntas
+	  	}
+	  );
+};
+
+
+
+// GET /quizes  muestra preguntas
+exports.index = function(req, res, next){
+	var consulta = {};
+	if (req.query.search) {
+		consulta = {
+		  where: {
+			$or: [
+				{pregunta: {$like: "%" + req.query.search.replace(" ", '%') + "%"}},
+				{tema: {$like: "%" + req.query.search.replace(" ", '%') + "%"}}
+			]
+		  },
+		  order: [
+			 ['tema' , 'ASC'],
+			 ['pregunta' , 'ASC']
+		  ]
+		}
+	};
+	models.Quiz.findAll(consulta).then(function(quizes){
+		res.render('quizes/index', {quizes: quizes, errors: []});
+	}).catch(function(error) {next(error);})
+};
+
+// GET /quizes/question  una sola pregunta
+
+/*exports.question = function(req, res){
+	models.Quiz.findAll().then(function(quiz){
+		res.render('quizes/question', {pregunta: quiz[0].pregunta});
+	})
+};*/
+
+// GET /quizes/:id  varias preguntas
+
 exports.show = function(req, res){
 	res.render('quizes/show', {quiz: req.quiz, errors: []});
 };
 
-// Función que muestra por pantalla la respuesta
-// GET /quizes/:quizId/answer
+
+// GET quizes/:id/edit
+exports.edit = function(req, res){
+	var quiz = req.quiz; // autoload de instancia de quiz
+	res.render('quizes/edit', {quiz: req.quiz, errors:[]});
+};
+
+// GET  /quizes/answer  una sola pregunta/respuesta
+
+/*exports.answer = function(req, res){
+	models.Quiz.findAll().then(function(quiz){
+		if (req.query.respuesta === quiz[0].respuesta){
+			res.render('quizes/answer',{respuesta: 'Correcto'});
+		} else{
+			res.render('quizes/answer',{respuesta: 'Incorrecto'});
+		}
+	})
+};*/
+
 exports.answer = function(req, res){
-	// En la url recibimos una query ?respuesta=valorRespuesta
-	// Esos parámetros son accesibles mediante la variable req.query
-	// Debido a la comprobación 'roma' en minúscula aparecerá como respuesta incorrecta
 	var resultado = 'Incorrecto';
-
-	if (req.query.respuesta === req.quiz.respuesta) {
-	    resultado = 'Correcto';
+	if (req.query.respuesta === req.quiz.respuesta){
+			resultado = 'Correcto';
 	}
-	res.render('quizes/answer', {quiz: req.quiz, respuesta: resultado, errors: []});
+	res.render('quizes/answer',
+				{quiz: req.quiz, 
+				 respuesta: resultado,
+				 errors: []
+				}
+	);
 };
 
-// Función que muestra la vista para introducir una nueva pregunta
-exports.new = function(req, res) {
-  var quiz = models.Quiz.build(
-    {pregunta: "Pregunta", respuesta: "Respuesta", tema:"Por definir"}
-  );
+// PUT /quizes/:id
+exports.update= function(req, res) {
+	req.quiz.tema = req.body.quiz.tema;	
+	req.quiz.pregunta = req.body.quiz.pregunta;
+	req.quiz.respuesta = req.body.quiz.respuesta;
 
-  res.render('quizes/new', {quiz: quiz, errors: []});
+	req.quiz
+	.validate()
+	.then(
+		function(err){
+			if(err){
+				res.render('quizes/edit', {quiz: req.quiz, errors: err.errors});
+			}else {
+				req.quiz    //save:guarda campos pregunta y respuesta en DB
+				.save ({fields: ["tema", "pregunta", "respuesta"]})
+				.then ( function(){ res.redirect('/quizes');});
+						// Redirección HTTP a la lista de preguntas URL relativo)
+			}
+		}
+	);
 };
 
-// Creamos una pregunta -> POST /quizes/create
-exports.create = function(req, res) {
-  var quiz = models.Quiz.build( req.body.quiz );
-
-// Guarda en DB los campos pregunta y respuesta de quiz
-  quiz.validate().then(
-    function(err){
-      if (err) {
-        res.render('quizes/new', {quiz: quiz, errors: err.errors});
-      } else {
-        quiz // save: guarda en DB campos pregunta y respuesta de quiz
-        .save({fields: ["pregunta", "respuesta", "tema"]})
-        .then( function(){ res.redirect('/quizes')}) 
-      }      // res.redirect: Redirección HTTP a lista de preguntas
-    }
-  ).catch(function(error){next(error)});
-};
-
-// Mostrar datos de la pregunta a editar -> GET /quizes/:id/edit
-exports.edit = function(req, res) {
-  var quiz = req.quiz;  // req.quiz: autoload de instancia de quiz
-  res.render('quizes/edit', {quiz: quiz, errors: []});
-};
-
-// Actualizamos una pregunta. PUT /quizes/:id
-exports.update = function(req, res) {
-  req.quiz.pregunta  = req.body.quiz.pregunta;
-  req.quiz.respuesta = req.body.quiz.respuesta;
-  req.quiz.tema = req.body.quiz.tema;
-
-  req.quiz
-  .validate()
-  .then(
-    function(err){
-      if (err) {
-        res.render('quizes/edit', {quiz: req.quiz, errors: err.errors});
-      } else {
-        req.quiz     // save: guarda campos pregunta y respuesta en DB
-        .save( {fields: ["pregunta", "respuesta", "tema"]})
-        .then( function(){ res.redirect('/quizes');});
-      }     // Redirección HTTP a lista de preguntas (URL relativo)
-    }
-  ).catch(function(error){next(error)});
-};
-
-// Borramos una pregunta -> DELETE /quizes/:id
+// DELETE /quizes/:id
 exports.destroy = function(req, res) {
-  req.quiz.destroy().then( function() {
-    res.redirect('/quizes');
-  }).catch(function(error){next(error)});
+	req.quiz.destroy().then(function(){
+		res.redirect('/quizes');
+	}).catch(function(error){next(error)});
 };
+
+// GET /author
+exports.author = function(req, res){
+	res.render('author', {nombre: 'Roberto Lozano Sáez', errors: []});
+};
+
+// GET /quizes/statistics
+exports.statistics = function(req, res){
+	models.Quiz.findAll().then(function(stadquery1){
+		var TotPreguntas = stadquery1.length;
+		models.Comment.findAll().then(function(stadquery2){
+			var TotComentarios = stadquery2.length;
+			models.Quiz.findAll({include: [{model: models.Comment, required: true}]}).then(function(stadquery3){
+				var PregConCom = stadquery3.length;
+				var PregSinCom = TotPreguntas - PregConCom;
+				var Media = 0;
+				if (TotPreguntas !=0) Media= (TotComentarios / TotPreguntas).toFixed(2);
+				res.render('quizes/statistics', {
+					TotalPreguntas: TotPreguntas, 
+					TotalComentarios: TotComentarios,
+					MediaComxPreg: Media, 
+					PreguntasConCom: PregConCom, 
+					PreguntasSinCom: PregSinCom,
+					errors: []
+				});
+			});
+		});
+		
+	});
+};
+
